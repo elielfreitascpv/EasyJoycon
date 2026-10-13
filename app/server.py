@@ -16,6 +16,7 @@ import time
 from . import colors, hidusers, rawimu
 from . import controllers as C
 from . import dsu, spawn
+from .i18n import _
 from .bluetooth import Bluetooth
 from .vibration import VirtualRumble
 from .motion import SIDEWAYS_L, SIDEWAYS_R, VERTICAL
@@ -270,8 +271,8 @@ class Server:
         def done(fut):
             if fut.result() is False and self.led_permission:
                 self.led_permission = False
-                self.players._say("sem permissão pros LEDs — clique em \"Preparar o sistema\" "
-                                  "e depois saia e entre de novo no computador")
+                self.players._say(_("sem permissão pros LEDs — clique em \"Preparar o "
+                                    "sistema\" e depois saia e entre de novo no computador"))
         self._loop.run_in_executor(None, ctrl.set_leds, pattern).add_done_callback(done)
 
     # --- laços ---------------------------------------------------------
@@ -303,7 +304,7 @@ class Server:
         # Movimento sempre zero = o driver leu a calibração errada ao conectar
         for ctrl in list(self.controllers.values()):
             if ctrl.motion.broken_driver_cal and now - (ctrl.connected_at or now) > 3:
-                await bt.reconnect(ctrl.mac, "o movimento veio zerado (calibração lida errada)")
+                await bt.reconnect(ctrl.mac, _("o movimento veio zerado (calibração lida errada)"))
         self._power_off_idle(now)
         if now - self._hid_users_at >= HID_USERS_S:
             self._hid_users_at = now
@@ -314,10 +315,11 @@ class Server:
         # silêncio longo = travou.
         for ctrl in list(self.controllers.values()):
             if is_mute(ctrl, now):
-                await bt.reconnect(ctrl.mac, f"parou de mandar dados faz {MUTE_S:.0f} s")
+                await bt.reconnect(ctrl.mac,
+                                   _("parou de mandar dados faz {s} s", s=f"{MUTE_S:.0f}"))
         # Conectado no Bluetooth, mas o Linux não criou o controle
         for mac in bt.half_connected(set(self.controllers)):
-            await bt.reconnect(mac, "ficou conectado pela metade")
+            await bt.reconnect(mac, _("ficou conectado pela metade"))
 
     def _wants_spi(self, ctrl):
         return ctrl.mac not in self.colors or ctrl.kind in rawimu.KINDS
@@ -369,8 +371,9 @@ class Server:
             if names != self.hid_users.get(mac):
                 ctrl = self.controllers.get(mac)
                 who = ctrl.name if ctrl else mac
-                self.players._say(f"{' e '.join(names)} está usando o {who}: feche pra não "
-                                  "estragar a calibração e a reconexão", "aviso")
+                self.players._say(_("{who} está usando o {ctrl}: feche pra não estragar a "
+                                    "calibração e a reconexão", who=_(" e ").join(names),
+                                    ctrl=who), "aviso")
         self.hid_users = now_users
 
     def _power_off_idle(self, now):
@@ -447,7 +450,7 @@ class Server:
         now = time.monotonic()
         for c in self.controllers.values():
             c.motion.start_calibration(now)
-        self.players._say("calibrando: deixe os controles parados por 2 segundos")
+        self.players._say(_("calibrando: deixe os controles parados por 2 segundos"))
 
     def change_smoothing(self, delta):
         self.set_smoothing(self.smoothing + delta)
@@ -521,8 +524,8 @@ class Server:
                 c.battery_warned = 9          # carregou: pode avisar de novo depois
             elif level in LOW_BATTERY and level < c.battery_warned and not charging:
                 c.battery_warned = level
-                quem = f" do jogador {c.player.number}" if c.player else ""
-                self.players._say(f"{c.name}{quem}: {LOW_BATTERY[level]}", "aviso")
+                quem = _(" do jogador {n}", n=c.player.number) if c.player else ""
+                self.players._say(f"{c.name}{quem}: {_(LOW_BATTERY[level])}", "aviso")
 
     async def forget_and_search(self):
         await self.bt.forget_and_search(self._search_seconds())
@@ -531,10 +534,10 @@ class Server:
         """Esquece todos os controles, apaga os jogadores e já procura de novo."""
         n = await self.bt.forget_all()
         if n is None:
-            self.players._say("sem adaptador Bluetooth agora — não deu pra esquecer", "aviso")
+            self.players._say(_("sem adaptador Bluetooth agora — não deu pra esquecer"), "aviso")
             return
         self.reset_players()
-        self.players._say(f"esqueci {n} controle(s) — pareie um de cada vez")
+        self.players._say(_("esqueci {n} controle(s) — pareie um de cada vez", n=n))
         await self.bt.search(self._search_seconds())
 
     # --- foto do estado pra janela ------------------------------------

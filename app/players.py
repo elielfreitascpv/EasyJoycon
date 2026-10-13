@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from .config import DATA_DIR
 from .controllers import LED_PLAYER, LED_WAITING
 from .motion import SIDEWAYS_L, SIDEWAYS_R, MotionOut
+from .i18n import _
 
 log = logging.getLogger(__name__)
 
@@ -266,7 +267,8 @@ class PlayerManager:
             for role, mac in p.macs.items():
                 if mac == ctrl.mac:
                     self._attach(p, role, ctrl)
-                    self._say(f"{ctrl.name} voltou pro jogador {p.number}", "conectou")
+                    self._say(_("{name} voltou pro jogador {n}", name=ctrl.name, n=p.number),
+                              "conectou")
                     return
         mem = self.memory.get(ctrl.mac)
         n = mem and self._free_number()
@@ -280,12 +282,13 @@ class PlayerManager:
                 if mac != ctrl.mac and v["jogador"] == mem["jogador"] and v["modo"] == mode == PAIR:
                     p.macs.setdefault("L" if role == "R" else "R", mac)
             self._attach(p, role, ctrl)
-            self._say(f"{ctrl.name} → jogador {n} ({MODE_NAMES[mode]})", "conectou")
+            self._say(_("{name} → jogador {n} ({mode})", name=ctrl.name, n=n,
+                         mode=_(MODE_NAMES[mode])), "conectou")
             return
         self.waiting[ctrl.mac] = ctrl
         self._waiting_since[ctrl.mac] = now
         self._led_setter(ctrl, LED_WAITING)
-        self._say(f"{ctrl.name} conectado — esperando (L+R ou SL+SR)", "conectou")
+        self._say(_("{name} conectado — esperando (L+R ou SL+SR)", name=ctrl.name), "conectou")
 
     def controller_gone(self, ctrl):
         was_waiting = self.waiting.pop(ctrl.mac, None) is not None
@@ -296,9 +299,10 @@ class PlayerManager:
                 if c is ctrl:
                     del p.members[role]
             ctrl.player = None
-            self._say(f"{ctrl.name} do jogador {p.number} desconectou", "desconectou")
+            self._say(_("{name} do jogador {n} desconectou", name=ctrl.name, n=p.number),
+                      "desconectou")
         elif was_waiting:
-            self._say(f"{ctrl.name} desconectou", "desconectou")
+            self._say(_("{name} desconectou", name=ctrl.name), "desconectou")
 
     def _attach(self, player, role, ctrl):
         player.members[role] = ctrl
@@ -321,18 +325,19 @@ class PlayerManager:
     def _new_player(self, mode, ctrls):
         n = self._free_number()
         if n is None:
-            self._say("já tem 4 jogadores — aperte R pra recomeçar")
+            self._say(_("já tem 4 jogadores — aperte R pra recomeçar"))
             return
         old = self.players.get(n)
         if old:
-            self._say(f"jogador {n} estava desconectado: lugar reaproveitado")
+            self._say(_("jogador {n} estava desconectado: lugar reaproveitado", n=n))
         p = self.players[n] = Player(n, mode)
         for c in ctrls:
             p.macs[c.kind] = c.mac
             self._attach(p, c.kind, c)
         self._save_memory()
         nomes = " + ".join(c.name for c in ctrls)
-        self._say(f"jogador {n}: {nomes} ({MODE_NAMES[mode]})", "jogador")
+        self._say(_("jogador {n}: {names} ({mode})", n=n, names=nomes, mode=_(MODE_NAMES[mode])),
+                  "jogador")
 
     # --- gestos -------------------------------------------------------
     def _single(self, ctrl):
@@ -395,8 +400,9 @@ class PlayerManager:
                 if c.kind in ("L", "R") and c.kind != me.kind and self._single(c):
                     self._pair_up(me, c)
                     return
-        other = "direito" if me.kind == "L" else "esquerdo"
-        self._say(f"não tem Joy-Con {other} sozinho pra juntar com o jogador {number}", "aviso")
+        other = _("direito") if me.kind == "L" else _("esquerdo")
+        self._say(_("não tem Joy-Con {side} sozinho pra juntar com o jogador {n}", side=other,
+                    n=number), "aviso")
 
     def split_pair(self, number):
         """Botão "Separar" no cartão do par: o direito fica com o número do
@@ -426,7 +432,8 @@ class PlayerManager:
                 lp.macs["L"] = left.mac
                 self._attach(lp, "L", left)
         self._save_memory()
-        self._say(f"jogador {number} separado: cada Joy-Con é um Wii Remote em pé", "jogador")
+        self._say(_("jogador {n} separado: cada Joy-Con é um Wii Remote em pé", n=number),
+                  "jogador")
 
     def toggle_nunchuk(self, number):
         """Tira/põe o Nunchuk do Wii Remote do jogador (par ou Pro) — o jogo
@@ -445,7 +452,7 @@ class PlayerManager:
             return
         p.mode = UPRIGHT if p.mode == SOLO else SOLO
         self._save_memory()
-        self._say(f"jogador {number}: agora {MODE_NAMES[p.mode]}", "jogador")
+        self._say(_("jogador {n}: agora {mode}", n=number, mode=_(MODE_NAMES[p.mode])), "jogador")
 
     def tick(self, now):
         """Junta sozinho um par L+R quando é óbvio (ninguém jogando ainda)."""
@@ -475,4 +482,4 @@ class PlayerManager:
         self.memory = {}
         if self.cfg["jogadores"]["lembrar"]:
             self._save_memory()
-        self._say("jogadores apagados — aperte L+R / SL+SR de novo")
+        self._say(_("jogadores apagados — aperte L+R / SL+SR de novo"))

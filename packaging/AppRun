@@ -48,7 +48,8 @@ if [ -n "${APPIMAGE:-}" ]; then
 [Desktop Entry]
 Type=Application
 Name=EasyJoycon
-Comment=Joy-Cons no Dolphin com movimento
+Comment=Joy-Cons in Dolphin with motion controls
+Comment[pt]=Joy-Cons no Dolphin com movimento
 Exec="$APPIMAGE"
 Icon=easyjoycon
 Terminal=false

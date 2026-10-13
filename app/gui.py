@@ -31,6 +31,7 @@ except (ImportError, ValueError):
     AyatanaAppIndicator3 = None
 
 from . import config, dolphin, sistema  # noqa: E402
+from .i18n import _  # noqa: E402
 from .motion import AIM_LIMIT  # noqa: E402
 from .players import MODE_NAMES  # noqa: E402
 
@@ -338,16 +339,16 @@ def _left(seconds):
 def ctrl_status(c):
     """Texto curto (cabe no cartão) + cor."""
     if c["motion"] == "zerado":
-        return "zerado, reconectando", RED
+        return _("zerado, reconectando"), RED
     if c["motion"] == "calibrando":
-        return "calibrando…", YELLOW
+        return _("calibrando…"), YELLOW
     if c["motion"] == "sem dados":
-        return "sem dados", YELLOW
+        return _("sem dados"), YELLOW
     if not c.get("calibrated", True):
-        return "pouse na mesa 2 s", YELLOW
+        return _("pouse na mesa 2 s"), YELLOW
     if c["hiccups"] >= 30:
-        return f"instável ({c['hiccups']:.0f}/min)", YELLOW
-    return "movimento ok", GREEN
+        return _("instável ({n}/min)", n=f"{c['hiccups']:.0f}"), YELLOW
+    return _("movimento ok"), GREEN
 
 
 CARD_W, CARD_H = 215, 400   # tamanho pro qual o cartão foi desenhado
@@ -397,16 +398,17 @@ class PlayerCard(Gtk.DrawingArea):
             _rgb(cr, ACCENT, 0.9)
             cr.set_line_width(2)
             cr.stroke()
-        _text(cr, f"Jogador {self.number}", w / 2, 34, 16, TEXT if p else TEXT_DIM, bold=True)
+        _text(cr, _("Jogador {n}", n=self.number), w / 2, 34, 16, TEXT if p else TEXT_DIM,
+              bold=True)
         for i in range(4):  # LEDs do número do jogador
             on = i < self.number
             _circle(cr, w / 2 - 21 + i * 14, 50, 4, GREEN if (p and on) else (0.35, 0.35, 0.37))
         if not p:
             _text(cr, "—", w / 2, h / 2 + 10, 30, (0.35, 0.35, 0.37))
             return
-        label = MODE_NAMES[p["mode"]]
+        label = _(MODE_NAMES[p["mode"]])
         if p["mode"] in ("par", "pro") and not p.get("nunchuk", True):
-            label = "Wii Remote (Nunchuk tirado)"
+            label = _("Wii Remote (Nunchuk tirado)")
         _text(cr, label, w / 2, 72, 12, TEXT_DIM)
         mid = 165 + max(0, h - 400) * 0.3
         members = p["members"]
@@ -445,7 +447,8 @@ class PlayerCard(Gtk.DrawingArea):
             _text(cr, msg, 106, y, 11, color, center=False)
             y += 20
         for role in p["missing"]:
-            _text(cr, f"({role}) caiu — aperte um botão nele", w / 2, y, 11, YELLOW)
+            _text(cr, _("({role}) caiu — aperte um botão nele", role=role), w / 2, y, 11,
+                  YELLOW)
             y += 18
 
 
@@ -467,15 +470,16 @@ class WaitingStrip(Gtk.DrawingArea):
         cr.fill()
         if not waiting:
             if st and st["searching"]:
-                msg = ("Procurando controles — segure o botãozinho de sync na lateral do "
-                       "Joy-Con. Terminou? Aperte A.")
+                msg = _("Procurando controles — segure o botãozinho de sync na lateral do "
+                        "Joy-Con. Terminou? Aperte A.")
             else:
-                msg = ("Controle já pareado: aperte um botão nele.  Controle novo: "
-                       "\"Procurar controles\" e segure o sync.")
+                msg = _("Controle já pareado: aperte um botão nele.  Controle novo: "
+                        "\"Procurar controles\" e segure o sync.")
             _text(cr, msg, w / 2, h / 2 + 5, 13, TEXT_DIM)
             return
-        _text(cr, "L + R juntos (um Joy-Con em cada mão) = Wii Remote + Nunchuk   ·   "
-              "SL + SR = deitado   ·   R + ZR (ou L + ZL) = em pé", w / 2, 28, 13, TEXT, bold=True)
+        _text(cr, _("L + R juntos (um Joy-Con em cada mão) = Wii Remote + Nunchuk   ·   "
+                    "SL + SR = deitado   ·   R + ZR (ou L + ZL) = em pé"),
+              w / 2, 28, 13, TEXT, bold=True)
         pulse = 0.55 + 0.45 * math.sin(time.monotonic() * 4)
         n = len(waiting)
         gap = min(110, (w - 40) / max(n, 1))
@@ -511,9 +515,9 @@ class MainWindow(Gtk.ApplicationWindow):
         for pill in (self.dolphin_pill, self.bt_pill):
             pill.get_style_context().add_class("ej-pill")
             top.pack_end(pill, False, False, 0)
-        self.autostart = Gtk.CheckButton(label="Abrir com o computador")
-        self.autostart.set_tooltip_text("Liga o EasyJoycon escondido perto do relógio quando "
-                                        "você entra no computador")
+        self.autostart = Gtk.CheckButton(label=_("Abrir com o computador"))
+        self.autostart.set_tooltip_text(_("Liga o EasyJoycon escondido perto do relógio quando "
+                                          "você entra no computador"))
         self.autostart.set_active(AUTOSTART.exists())
         if AUTOSTART.exists():
             set_autostart(True)     # o AppImage pode ter mudado de pasta
@@ -535,12 +539,12 @@ class MainWindow(Gtk.ApplicationWindow):
         self.warn_label = Gtk.Label(xalign=0)
         self.warn_label.set_line_wrap(True)
         self.warn_box.pack_start(self.warn_label, True, True, 0)
-        self.rebond_btn = Gtk.Button(label="Parear de novo")
+        self.rebond_btn = Gtk.Button(label=_("Parear de novo"))
         self.rebond_btn.connect("clicked", lambda *_: self.app.rebond())
         self.warn_box.pack_end(self.rebond_btn, False, False, 0)
-        self.setup_btn = Gtk.Button(label="Preparar o sistema")
-        self.setup_btn.set_tooltip_text("Ajusta o Bluetooth e as permissões dos controles "
-                                        "(pede a senha de administrador uma vez)")
+        self.setup_btn = Gtk.Button(label=_("Preparar o sistema"))
+        self.setup_btn.set_tooltip_text(_("Ajusta o Bluetooth e as permissões dos controles "
+                                          "(pede a senha de administrador uma vez)"))
         self.setup_btn.connect("clicked", lambda *_: self.app.prepare_system())
         self.warn_box.pack_end(self.setup_btn, False, False, 0)
         self.warn_rev = Gtk.Revealer()
@@ -555,20 +559,20 @@ class MainWindow(Gtk.ApplicationWindow):
             col.pack_start(c, True, True, 0)
             # 2×2: os 4 lado a lado deixavam a janela mais larga que a tela
             row = Gtk.Grid(row_spacing=4, column_spacing=4, column_homogeneous=True)
-            ident = Gtk.Button(label="Identificar")
-            ident.set_tooltip_text("Vibra e acende os LEDs do controle desse jogador")
+            ident = Gtk.Button(label=_("Identificar"))
+            ident.set_tooltip_text(_("Vibra e acende os LEDs do controle desse jogador"))
             ident.connect("clicked", lambda _b, n=c.number: app.server.call(app.server.identify, n))
-            mode = Gtk.Button(label="Em pé")
+            mode = Gtk.Button(label=_("Em pé"))
             mode.connect("clicked", lambda _b, n=c.number: app.server.call(
                 app.server.toggle_single_mode, n))
-            join = Gtk.Button(label="Juntar")
+            join = Gtk.Button(label=_("Juntar"))
             join.connect("clicked", lambda _b, n=c.number: app.server.call(
                 app.server.join_or_split, n))
             nun = Gtk.Button(label="Nunchuk")
-            nun.set_tooltip_text("Tira ou põe o Nunchuk com o jogo rodando (quando o jogo "
-                                 "pedir). Vale quando você voltar pro Dolphin — ele só lê os "
-                                 "controles com a janela dele em foco. No controle, na hora: "
-                                 "botão de captura do Joy-Con esquerdo")
+            nun.set_tooltip_text(_("Tira ou põe o Nunchuk com o jogo rodando (quando o jogo "
+                                   "pedir). Vale quando você voltar pro Dolphin — ele só lê os "
+                                   "controles com a janela dele em foco. No controle, na hora: "
+                                   "botão de captura do Joy-Con esquerdo"))
             nun.connect("clicked", lambda _b, n=c.number: app.server.call(
                 app.server.toggle_nunchuk, n))
             for i, btn in enumerate((ident, mode, join, nun)):
@@ -584,34 +588,34 @@ class MainWindow(Gtk.ApplicationWindow):
 
         bar = Gtk.Box(spacing=8)
         bar.get_style_context().add_class("ej-bar")
-        self.search_btn = Gtk.Button(label="Procurar controles")
+        self.search_btn = Gtk.Button(label=_("Procurar controles"))
         self.search_btn.connect("clicked", lambda *_: self.app.toggle_search())
         bar.pack_start(self.search_btn, False, False, 0)
-        calib = Gtk.Button(label="Calibrar")
-        calib.set_tooltip_text("Deixe os controles parados em cima da mesa por 2 segundos")
+        calib = Gtk.Button(label=_("Calibrar"))
+        calib.set_tooltip_text(_("Deixe os controles parados em cima da mesa por 2 segundos"))
         calib.connect("clicked", lambda *_: self.app.calibrate())
         bar.pack_start(calib, False, False, 0)
-        reset = Gtk.Button(label="Recomeçar jogadores")
-        reset.set_tooltip_text("Todo mundo volta a esperar o L+R / SL+SR")
+        reset = Gtk.Button(label=_("Recomeçar jogadores"))
+        reset.set_tooltip_text(_("Todo mundo volta a esperar o L+R / SL+SR"))
         reset.connect("clicked", lambda *_: self.app.reset_players())
         bar.pack_start(reset, False, False, 0)
-        forget = Gtk.Button(label="Esquecer controles")
-        forget.set_tooltip_text("Tira todos os Joy-Cons/Pro Controller do Bluetooth, como "
-                                "\"remover dispositivo\", pra parear do zero")
+        forget = Gtk.Button(label=_("Esquecer controles"))
+        forget.set_tooltip_text(_("Tira todos os Joy-Cons/Pro Controller do Bluetooth, como "
+                                  "\"remover dispositivo\", pra parear do zero"))
         forget.connect("clicked", lambda *_: self.app.forget_all())
         bar.pack_start(forget, False, False, 0)
         # as duas réguas empilhadas: lado a lado a janela ficava larga demais
         sliders = Gtk.Grid(column_spacing=8)
         self.smooth = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 10, 1)
         self.smooth.set_value(app.server.smoothing)
-        self.smooth.set_tooltip_text("0 = nenhuma (mais rápido) · 10 = bem suave")
+        self.smooth.set_tooltip_text(_("0 = nenhuma (mais rápido) · 10 = bem suave"))
         self.smooth.connect("value-changed", self.on_smooth)
         self.rumble = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 10)
         self.rumble.set_value(app.server.rumble_force)
-        self.rumble.set_tooltip_text("Força da vibração dos jogos · 0 = desligada")
+        self.rumble.set_tooltip_text(_("Força da vibração dos jogos · 0 = desligada"))
         self.rumble.connect("value-changed", self.on_rumble)
-        for row, (text, scale) in enumerate((("Suavização", self.smooth),
-                                             ("Vibração", self.rumble))):
+        for row, (text, scale) in enumerate(((_("Suavização"), self.smooth),
+                                             (_("Vibração"), self.rumble))):
             lbl = Gtk.Label(label=text, xalign=1)
             lbl.get_style_context().add_class("ej-dim")
             scale.set_draw_value(True)
@@ -620,12 +624,12 @@ class MainWindow(Gtk.ApplicationWindow):
             sliders.attach(lbl, 0, row, 1, 1)
             sliders.attach(scale, 1, row, 1, 1)
         bar.pack_start(sliders, False, False, 6)
-        play = Gtk.Button(label="Abrir Dolphin")
+        play = Gtk.Button(label=_("Abrir Dolphin"))
         play.connect("clicked", lambda *_: self.app.open_dolphin())
         bar.pack_end(play, False, False, 0)
-        conf = Gtk.Button(label="Configurar Dolphin")
-        conf.set_tooltip_text("Mapeia os Wii Remotes conforme os jogadores de agora "
-                              "(com o Dolphin fechado)")
+        conf = Gtk.Button(label=_("Configurar Dolphin"))
+        conf.set_tooltip_text(_("Mapeia os Wii Remotes conforme os jogadores de agora "
+                                "(com o Dolphin fechado)"))
         conf.connect("clicked", lambda *_: self.app.configure_dolphin())
         bar.pack_end(conf, False, False, 0)
         root.pack_start(bar, False, False, 0)
@@ -666,48 +670,49 @@ class MainWindow(Gtk.ApplicationWindow):
             self._banner_until = 0.0
         if st["bt_ok"]:
             self.bt_pill.set_text(f"● Bluetooth {st['bt_name']}"
-                                  + (" · procurando" + _left(st["search_left"])
+                                  + (_(" · procurando") + _left(st["search_left"])
                                      if st["searching"] else ""))
         else:
-            self.bt_pill.set_text(f"✕ Bluetooth: {st['bt_error'] or 'sem adaptador'}")
-        self.dolphin_pill.set_text("● Dolphin recebendo" if st["dolphin"]
-                                   else "○ Dolphin ainda não conectou")
-        self.search_btn.set_label("Parar de procurar" if st["searching"]
-                                  else "Procurar controles")
+            self.bt_pill.set_text(f"✕ Bluetooth: {st['bt_error'] or _('sem adaptador')}")
+        self.dolphin_pill.set_text(_("● Dolphin recebendo") if st["dolphin"]
+                                   else _("○ Dolphin ainda não conectou"))
+        self.search_btn.set_label(_("Parar de procurar") if st["searching"]
+                                  else _("Procurar controles"))
         warns = []
         setup = self.app.setup_missing
         if setup:
-            warns.append("O sistema ainda não está preparado pro EasyJoycon ("
-                         + "; ".join(setup) + "). Clique em \"Preparar o sistema\": "
-                         "vai pedir a senha de administrador uma vez só.")
+            warns.append(_("O sistema ainda não está preparado pro EasyJoycon ({what}). "
+                           "Clique em \"Preparar o sistema\": vai pedir a senha de "
+                           "administrador uma vez só.", what="; ".join(setup)))
         elif st["no_permission"]:
-            warns.append(f"Sem permissão pra ler os botões de {st['no_permission']} controle(s): "
-                         "desligue e ligue o controle; se continuar, saia e entre de novo "
-                         "no computador.")
+            warns.append(_("Sem permissão pra ler os botões de {n} controle(s): desligue e "
+                           "ligue o controle; se continuar, saia e entre de novo no "
+                           "computador.", n=st["no_permission"]))
         if st["unbonded"]:
             nomes = ", ".join(sorted({n for _, n in st["unbonded"]}))
-            warns.append(f"{nomes}: pareado(s) sem guardar a chave — não reconectam sozinhos. "
-                         "Clique em \"Parear de novo\" e segure o botão de sync de cada um.")
+            warns.append(_("{names}: pareado(s) sem guardar a chave — não reconectam "
+                           "sozinhos. Clique em \"Parear de novo\" e segure o botão de sync "
+                           "de cada um.", names=nomes))
         if st.get("hid_users"):
-            quem = " e ".join(st["hid_users"])
+            quem = _(" e ").join(st["hid_users"])
             quem = quem[:1].upper() + quem[1:]
-            warns.append(f"{quem} está usando o controle e manda comandos próprios pra ele: "
-                         "a calibração e a reconexão pelo botão podem falhar. Feche e, se o "
-                         "movimento ou o analógico ficarem estranhos, desligue e ligue o "
-                         "controle.")
+            warns.append(_("{who} está usando o controle e manda comandos próprios pra ele: "
+                           "a calibração e a reconexão pelo botão podem falhar. Feche e, se o "
+                           "movimento ou o analógico ficarem estranhos, desligue e ligue o "
+                           "controle.", who=quem))
         if st.get("uinput_error") and not setup:     # o "Preparar o sistema" resolve
-            warns.append("Sem o controle virtual (/dev/uinput): no Dolphin não funcionam a "
-                         "vibração, o Nunchuk nem o modo deitado. Veja o que falta com "
-                         "o diagnóstico (comando diagnostico).")
+            warns.append(_("Sem o controle virtual (/dev/uinput): no Dolphin não funcionam a "
+                           "vibração, o Nunchuk nem o modo deitado. Veja o que falta com "
+                           "o diagnóstico (comando diagnostico)."))
         if self.app.dolphin_pending:
             if self.app.dolphin_pending == "versao":
-                warns.append("O EasyJoycon tem um jeito novo de configurar o Dolphin: feche e "
-                             "abra o Dolphin uma vez (depois, mudar os jogadores vale com ele "
-                             "aberto).")
+                warns.append(_("O EasyJoycon tem um jeito novo de configurar o Dolphin: feche "
+                               "e abra o Dolphin uma vez (depois, mudar os jogadores vale com "
+                               "ele aberto)."))
             else:
-                warns.append("Entrou jogador além dos Wii Remotes ligados no Dolphin: feche e "
-                             "abra o Dolphin pra ligar mais um (ou suba \"wiimotes\" no "
-                             "config).")
+                warns.append(_("Entrou jogador além dos Wii Remotes ligados no Dolphin: feche "
+                               "e abra o Dolphin pra ligar mais um (ou suba \"wiimotes\" no "
+                               "config)."))
         self.rebond_btn.set_visible(bool(st["unbonded"]))
         self.setup_btn.set_visible(bool(setup))
         self.setup_btn.set_sensitive(not self.app.preparing)
@@ -721,18 +726,18 @@ class MainWindow(Gtk.ApplicationWindow):
             pair = bool(p and p["mode"] == "par")
             join.set_visible(pair or (role in ("L", "R") and any(
                 r in ("L", "R") and r != role for m, r in singles.items() if m != n)))
-            join.set_label("Separar" if pair else "Juntar")
+            join.set_label(_("Separar") if pair else _("Juntar"))
             has_nun = bool(p and p["mode"] in ("par", "pro"))
             nun.set_visible(has_nun)
             if has_nun:
-                nun.set_label("Tirar Nunchuk" if p["nunchuk"] else "Pôr Nunchuk")
-            join.set_tooltip_text("Cada Joy-Con vira um Wii Remote em pé" if pair else
-                                  "Junta com o outro Joy-Con sozinho num Wii Remote + Nunchuk")
+                nun.set_label(_("Tirar Nunchuk") if p["nunchuk"] else _("Pôr Nunchuk"))
+            join.set_tooltip_text(_("Cada Joy-Con vira um Wii Remote em pé") if pair else
+                                  _("Junta com o outro Joy-Con sozinho num Wii Remote + Nunchuk"))
             ident.set_sensitive(bool(p and p["members"]))
             single = bool(p and p["mode"] in ("sozinho", "empe"))
             mode.set_visible(single)
             if single:
-                mode.set_label("Usar em pé" if p["mode"] == "sozinho" else "Usar deitado")
+                mode.set_label(_("Usar em pé") if p["mode"] == "sozinho" else _("Usar deitado"))
         self.redraw_changed(st)
 
     def redraw_changed(self, st):
@@ -762,7 +767,8 @@ def set_autostart(on):
         AUTOSTART.parent.mkdir(parents=True, exist_ok=True)
         AUTOSTART.write_text(
             "[Desktop Entry]\nType=Application\nName=EasyJoycon\n"
-            "Comment=Joy-Cons no Dolphin com movimento\n"
+            "Comment=Joy-Cons in Dolphin with motion controls\n"
+            "Comment[pt]=Joy-Cons no Dolphin com movimento\n"
             f'Exec="{LAUNCHER}" --segundo-plano\nIcon={DESKTOP_ICON}\nTerminal=false\n'
             "X-GNOME-Autostart-enabled=true\n", encoding="utf-8")
     else:
@@ -830,15 +836,16 @@ class EasyJoyconApp(Gtk.Application):
         self.window.hide()
         if not self._told_tray:
             self._told_tray = True
-            self.notify("info-tray", "O EasyJoycon continua ligado perto do relógio — "
-                        "os controles seguem funcionando. Pra fechar de vez: ícone → Sair.")
+            self.notify("info-tray", _("O EasyJoycon continua ligado perto do relógio — "
+                                       "os controles seguem funcionando. Pra fechar de vez: "
+                                       "ícone → Sair."))
         return True
 
     def _tray_menu(self):
         menu = Gtk.Menu()
-        for label, cb in (("Mostrar a janela", self.show_window),
-                          ("Procurar controles", lambda *_: self.toggle_search()),
-                          ("Sair", lambda *_: self.quit())):
+        for label, cb in ((_("Mostrar a janela"), self.show_window),
+                          (_("Procurar controles"), lambda *_a: self.toggle_search()),
+                          (_("Sair"), lambda *_a: self.quit())):
             item = Gtk.MenuItem(label=label)
             item.connect("activate", cb)
             menu.append(item)
@@ -873,11 +880,11 @@ class EasyJoyconApp(Gtk.Application):
         try:
             asyncio.run(self.server.run())
         except OSError as e:
-            self.server_error = ("A porta do DSU já está em uso — o EasyJoycon já está aberto?"
-                                 if e.errno == 98 else str(e))
+            self.server_error = (_("A porta do DSU já está em uso — o EasyJoycon já está "
+                                   "aberto?") if e.errno == 98 else str(e))
             log.error("servidor parou: %s", e)
         except Exception as e:  # mostrar na janela em vez de sumir calado
-            self.server_error = f"o servidor parou: {e}"
+            self.server_error = _("o servidor parou: {error}", error=e)
             log.exception("servidor parou")
 
     def _tick(self):
@@ -890,9 +897,9 @@ class EasyJoyconApp(Gtk.Application):
             if self.window and self.window.get_visible():
                 self.window.refresh(st)
             n = sum(1 for p in st["players"].values() if p["members"])
-            tip = f"EasyJoycon — {n} jogador(es)"
+            tip = _("EasyJoycon — {n} jogador(es)", n=n)
             if st["dolphin"]:
-                tip += " · Dolphin recebendo"
+                tip += _(" · Dolphin recebendo")
             is_xapp = XApp is not None and isinstance(self.tray, XApp.StatusIcon)
             if tip != self._tray_tip and is_xapp:
                 self._tray_tip = tip
@@ -968,7 +975,7 @@ class EasyJoyconApp(Gtk.Application):
         if self.preparing:
             return
         self.preparing = True
-        self.window.show_banner("Preparando o sistema: digite a sua senha na janelinha.")
+        self.window.show_banner(_("Preparando o sistema: digite a sua senha na janelinha."))
 
         def work():
             ok, out = sistema.prepare()
@@ -979,55 +986,58 @@ class EasyJoyconApp(Gtk.Application):
             self.setup_missing = sistema.missing()
             log.info("preparar o sistema: %s\n%s", "ok" if ok else "falhou", out)
             if ok and not self.setup_missing:
-                self.window.show_banner("Sistema pronto! Se um controle já estava ligado, "
-                                        "desligue e ligue ele de novo.")
+                self.window.show_banner(_("Sistema pronto! Se um controle já estava ligado, "
+                                          "desligue e ligue ele de novo."))
             else:
-                last = out.strip().splitlines()[-1] if out.strip() else "não sei por quê"
-                self.window.show_banner(f"Não deu pra preparar o sistema: {last}", bad=True)
+                last = out.strip().splitlines()[-1] if out.strip() else _("não sei por quê")
+                self.window.show_banner(_("Não deu pra preparar o sistema: {why}", why=last),
+                                        bad=True)
             return False
 
         threading.Thread(target=work, daemon=True).start()
 
     def rebond(self):
-        self.window.show_banner("Segure o botãozinho de sync na lateral de cada Joy-Con "
-                                "(as luzes vão correr) até ele conectar.")
+        self.window.show_banner(_("Segure o botãozinho de sync na lateral de cada Joy-Con "
+                                  "(as luzes vão correr) até ele conectar."))
         self.server.call(self.server.forget_and_search)
 
     def forget_all(self):
         dlg = Gtk.MessageDialog(transient_for=self.window, modal=True,
                                 message_type=Gtk.MessageType.QUESTION,
                                 buttons=Gtk.ButtonsType.NONE,
-                                text="Esquecer todos os controles?")
-        dlg.format_secondary_text(
+                                text=_("Esquecer todos os controles?"))
+        dlg.format_secondary_text(_(
             "Os Joy-Cons e o Pro Controller saem do Bluetooth deste computador, como em "
             "\"remover dispositivo\", e os jogadores são apagados. Depois é só segurar o "
             "botãozinho de sync de um controle por vez pra parear de novo.\n\n"
-            "Outros aparelhos (fone, teclado) não são mexidos.")
-        dlg.add_buttons("Cancelar", Gtk.ResponseType.CANCEL,
-                        "Esquecer", Gtk.ResponseType.OK)
+            "Outros aparelhos (fone, teclado) não são mexidos."))
+        dlg.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL,
+                        _("Esquecer"), Gtk.ResponseType.OK)
         dlg.get_widget_for_response(Gtk.ResponseType.OK).get_style_context().add_class(
             "destructive-action")
         ok = dlg.run() == Gtk.ResponseType.OK
         dlg.destroy()
         if ok:
-            self.window.show_banner("Esquecendo… depois segure o sync de UM controle por vez "
-                                    "(as luzes correm) até ele conectar.")
+            self.window.show_banner(_("Esquecendo… depois segure o sync de UM controle por "
+                                      "vez (as luzes correm) até ele conectar."))
             self.server.call(self.server.forget_all)
 
     def apply_layout(self, layout, quiet=False):
         """Configura os Wii Remotes conforme os jogadores. True se deu certo."""
         try:
-            path, _ = dolphin.configure(layout, self.cfg["dsu"]["porta"],
-                                        self.cfg["dsu"]["porta_nunchuk"], self._wiimotes())
+            path, _backup = dolphin.configure(layout, self.cfg["dsu"]["porta"],
+                                              self.cfg["dsu"]["porta_nunchuk"], self._wiimotes())
         except (RuntimeError, OSError) as e:
             if not quiet:
-                self.window.show_banner(f"Não configurei o Dolphin: {e}.", bad=True)
+                self.window.show_banner(_("Não configurei o Dolphin: {error}.", error=e),
+                                        bad=True)
             return False
         self.dolphin_pending = None
         slots = dolphin.slots_for(layout, self._wiimotes())
         log.info("Dolphin configurado (Wii Remotes e GameCube %s) em %s", slots, path)
-        self.window.show_banner(f"Dolphin pronto: {len(slots)} Wii Remote(s) e controle(s) de "
-                                "GameCube; trocar o jeito de jogar vale com ele aberto.")
+        self.window.show_banner(_("Dolphin pronto: {n} Wii Remote(s) e controle(s) de "
+                                  "GameCube; trocar o jeito de jogar vale com ele aberto.",
+                                  n=len(slots)))
         return True
 
     def configure_dolphin(self):
@@ -1042,7 +1052,7 @@ class EasyJoyconApp(Gtk.Application):
             self.dolphin_missing()
             return
         if dolphin.dolphin_running():
-            self.window.show_banner("O Dolphin já está aberto.")
+            self.window.show_banner(_("O Dolphin já está aberto."))
             return
         layout = (self.state or {}).get("layout") or {}
         if self._needs_dolphin(layout) and not self.apply_layout(layout):
@@ -1054,9 +1064,9 @@ class EasyJoyconApp(Gtk.Application):
         """Dolphin não instalado: explica como instalar (com link pro site)."""
         dlg = Gtk.MessageDialog(transient_for=self.window, modal=True,
                                 message_type=Gtk.MessageType.INFO,
-                                buttons=Gtk.ButtonsType.NONE, text="Falta o Dolphin")
-        dlg.format_secondary_text(dolphin.INSTALL_HELP)
-        dlg.add_buttons("Abrir o site do Dolphin", 1, "Fechar", Gtk.ResponseType.CLOSE)
+                                buttons=Gtk.ButtonsType.NONE, text=_("Falta o Dolphin"))
+        dlg.format_secondary_text(_(dolphin.INSTALL_HELP))
+        dlg.add_buttons(_("Abrir o site do Dolphin"), 1, _("Fechar"), Gtk.ResponseType.CLOSE)
         if dlg.run() == 1:
             Gtk.show_uri_on_window(self.window, dolphin.DOWNLOAD_URL, Gdk.CURRENT_TIME)
         dlg.destroy()

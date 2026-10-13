@@ -16,6 +16,7 @@ from dbus_fast.errors import DBusError
 from dbus_fast.service import ServiceInterface, method
 
 from . import spawn
+from .i18n import _
 
 log = logging.getLogger(__name__)
 
@@ -119,7 +120,7 @@ class Bluetooth:
         try:
             self.bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
         except (OSError, DBusError) as e:
-            self.error = f"sem acesso ao Bluetooth ({e})"
+            self.error = _("sem acesso ao Bluetooth ({error})", error=e)
             return False
         self.bus.export(AGENT_PATH, Agent(self))
         self.bus.add_message_handler(self._on_signal)
@@ -136,7 +137,7 @@ class Bluetooth:
         except DBusError as e:
             log.warning("não registrou o agente de pareamento: %s", e)
         if self.adapter is None:
-            self.error = "nenhum adaptador Bluetooth encontrado"
+            self.error = _("nenhum adaptador Bluetooth encontrado")
             return False
         return True
 
@@ -201,7 +202,7 @@ class Bluetooth:
                 if self._resume_after_reset:
                     left = self._resume_after_reset
                     self._resume_after_reset = 0.0
-                    self._say("adaptador Bluetooth voltou — procurando de novo")
+                    self._say(_("adaptador Bluetooth voltou — procurando de novo"))
                     spawn(self.search(left))
         elif msg.member == "InterfacesRemoved":
             path, ifaces = msg.body
@@ -215,9 +216,10 @@ class Bluetooth:
                 self.searching_until, self._paused = 0.0, False
                 self._all.clear()
                 self._connected_since.clear()
-                self._say("o adaptador Bluetooth reiniciou sozinho — os controles caíram", "aviso")
+                self._say(_("o adaptador Bluetooth reiniciou sozinho — os controles caíram"),
+                          "aviso")
         elif msg.member == "PropertiesChanged" and msg.path:
-            iface, changed, _ = msg.body
+            iface, changed, _invalidated = msg.body
             if iface == "org.bluez.Device1":
                 self._update_device(msg.path, changed)
             elif iface == "org.bluez.Adapter1" and msg.path == self.adapter:
@@ -244,12 +246,12 @@ class Bluetooth:
             await self._call(BLUEZ, self.adapter, "org.bluez.Adapter1", "StartDiscovery")
         except DBusError as e:
             if "InProgress" not in str(e.type):
-                self._say(f"não consegui procurar: {e.text}", "aviso")
+                self._say(_("não consegui procurar: {error}", error=e.text), "aviso")
                 return
         self.search_deadline = time.monotonic() + seconds
         self._extend_search()
-        self._say("procurando… segure o botãozinho de sync na lateral do controle"
-                  + (" (terminou? aperte A)" if seconds == float("inf") else ""))
+        self._say(_("procurando… segure o botãozinho de sync na lateral do controle")
+                  + (_(" (terminou? aperte A)") if seconds == float("inf") else ""))
         # controles já conhecidos que estão em modo de pareamento
         for path, props in list(self.devices.items()):
             if not props.get("Connected") and "RSSI" in props:
@@ -272,7 +274,7 @@ class Bluetooth:
             await self._call(BLUEZ, self.adapter, "org.bluez.Adapter1", "StopDiscovery")
         except DBusError:
             pass
-        self._say("parei de procurar")
+        self._say(_("parei de procurar"))
 
     async def _pair_and_connect(self, path):
         """Um controle por vez, com a busca pausada: procurar e conectar ao
@@ -324,19 +326,19 @@ class Bluetooth:
         return False
 
     async def _pair_and_connect_locked(self, path):
-        name = self.devices.get(path, {}).get("Name", "controle")
+        name = self.devices.get(path, {}).get("Name", _("controle"))
         try:
             props = self.devices.get(path, {})
             if props.get("Paired") and not props.get("Bonded") and path not in self._rebond_tried:
                 # Pareado sem guardar a chave: o controle não consegue reconectar
                 # sozinho. Esquece e pareia de novo (a busca acha ele de novo).
                 self._rebond_tried.add(path)
-                self._say(f"{name}: pareando de novo pra ele lembrar deste computador")
+                self._say(_("{name}: pareando de novo pra ele lembrar deste computador", name=name))
                 await self._call(BLUEZ, self.adapter, "org.bluez.Adapter1", "RemoveDevice",
                                  "o", [path])
                 return
             if not props.get("Paired"):
-                self._say(f"pareando {name}…")
+                self._say(_("pareando {name}…", name=name))
                 try:
                     await self._call(BLUEZ, path, "org.bluez.Device1", "Pair", timeout=25)
                 except (DBusError, TimeoutError) as e:
@@ -358,19 +360,22 @@ class Bluetooth:
                 # ServicesResolved o adaptador travou no meio da conversa
                 # (o clone de CSR faz isso; visto no btmon em 2026-10-07).
                 if self.devices.get(path, {}).get("ServicesResolved"):
-                    self._say(f"{name}: conectou pela metade — segure o sync de novo", "aviso")
+                    self._say(_("{name}: conectou pela metade — segure o sync de novo", name=name),
+                              "aviso")
                 else:
-                    self._say(f"{name}: o adaptador Bluetooth travou no meio da conexão — "
-                              "segure o sync de novo (se repetir, é o adaptador)", "aviso")
+                    self._say(_("{name}: o adaptador Bluetooth travou no meio da conexão — "
+                                "segure o sync de novo (se repetir, é o adaptador)", name=name),
+                              "aviso")
                 await self._call(BLUEZ, path, "org.bluez.Device1", "Disconnect", timeout=10)
                 return
             bonded = self.devices.get(path, {}).get("Bonded")
-            self._say(f"{name} pareado" + ("" if bonded else
-                      " (sem guardar a chave: vai precisar parear de novo da próxima vez)"),
+            self._say(_("{name} pareado", name=name) + ("" if bonded else _(
+                      " (sem guardar a chave: vai precisar parear de novo da próxima vez)")),
                       "info" if bonded else "aviso")
         except (DBusError, TimeoutError) as e:
-            self._say(f"{name}: não conectou ({getattr(e, 'text', '') or 'demorou demais'}) — "
-                      "segure o sync de novo", "aviso")
+            why = getattr(e, "text", "") or _("demorou demais")
+            self._say(_("{name}: não conectou ({why}) — segure o sync de novo", name=name,
+                        why=why), "aviso")
 
     # --- consertos -----------------------------------------------------
     async def reconnect(self, mac, reason):
@@ -382,7 +387,8 @@ class Bluetooth:
             return False
         self._last_fix[path] = now
         name = self.devices.get(path, {}).get("Name", mac)
-        self._say(f"{name}: {reason} — desconectei; aperte um botão nele pra voltar", "aviso")
+        self._say(_("{name}: {reason} — desconectei; aperte um botão nele pra voltar", name=name,
+                    reason=reason), "aviso")
         try:
             await self._call(BLUEZ, path, "org.bluez.Device1", "Disconnect", timeout=10)
         except (DBusError, TimeoutError) as e:

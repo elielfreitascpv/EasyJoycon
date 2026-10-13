@@ -19,9 +19,10 @@ from pathlib import Path
 TMP = Path(tempfile.mkdtemp(prefix="easyjoycon-teste-"))
 os.environ["EASYJOYCON_DATA_DIR"] = str(TMP / "data")
 os.environ["EASYJOYCON_DOLPHIN_CONFIG"] = str(TMP / "dolphin")
+os.environ["EASYJOYCON_IDIOMA"] = "pt"   # os testes conferem os avisos em português
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app import config, dolphin, dsu, motion, players  # noqa: E402
+from app import config, dolphin, dsu, i18n, motion, players  # noqa: E402
 from app import evdev as E  # noqa: E402
 from app.controllers import Controller  # noqa: E402
 
@@ -1662,11 +1663,65 @@ def janela_cabe_em_tela_1366x768():
     a.register(None)
     a.server = mock.MagicMock(smoothing=3, rumble_force=50)
     a.state = None
-    w = gui.MainWindow(a)
-    w.show_all()
-    minimo, _ = w.get_preferred_size()
-    w.destroy()
-    assert minimo.width <= 1366 and minimo.height <= 690, (minimo.width, minimo.height)
+    try:
+        for lang in ("pt", "en"):            # os textos têm tamanhos diferentes
+            i18n.set_language(lang)
+            w = gui.MainWindow(a)
+            w.show_all()
+            minimo, _ = w.get_preferred_size()
+            w.destroy()
+            assert minimo.width <= 1366 and minimo.height <= 690, (lang, minimo.width,
+                                                                   minimo.height)
+    finally:
+        i18n.set_language("pt")
+
+
+# --- tradução --------------------------------------------------------------
+@caso
+def traducao_completa():
+    """Todo texto passado pro _() (e os que vão por variável: modos, bateria,
+    instalar o Dolphin) tem a versão em inglês, com os mesmos {campos}."""
+    import ast
+    import string
+    from app import server
+    textos = set(players.MODE_NAMES.values()) | set(server.LOW_BATTERY.values())
+    textos.add(dolphin.INSTALL_HELP)
+    for f in (Path(__file__).resolve().parent.parent / "app").glob("*.py"):
+        for node in ast.walk(ast.parse(f.read_text(encoding="utf-8"))):
+            if (isinstance(node, ast.Call) and getattr(node.func, "id", None) == "_"
+                    and node.args and isinstance(node.args[0], ast.Constant)):
+                textos.add(node.args[0].value)
+    assert len(textos) > 100, len(textos)
+
+    def campos(t):
+        return {nome for _, nome, _, _ in string.Formatter().parse(t) if nome}
+    faltam = sorted(t for t in textos if t not in i18n.EN)
+    assert not faltam, faltam
+    errados = [t for t in textos if campos(t) != campos(i18n.EN[t])]
+    assert not errados, errados
+    sobrando = sorted(set(i18n.EN) - textos)
+    assert not sobrando, sobrando
+    try:
+        i18n.set_language("en")
+        assert i18n._("Jogador {n}", n=2) == "Player 2"
+        assert i18n._("texto sem tradução") == "texto sem tradução"
+    finally:
+        i18n.set_language("pt")
+    assert i18n._("Jogador {n}", n=2) == "Jogador 2"
+
+
+@caso
+def idioma_segue_o_sistema():
+    d = i18n.detect
+    assert d({"LANG": "pt_BR.UTF-8"}) == "pt"
+    assert d({"LANG": "en_US.UTF-8"}) == "en"
+    assert d({"LANG": "es_ES.UTF-8"}) == "en"              # sem tradução: inglês
+    assert d({"LANG": "en_US.UTF-8", "LANGUAGE": "pt_BR:pt:en"}) == "pt"
+    assert d({"LANG": "pt_BR.UTF-8", "LANGUAGE": "en_US:en"}) == "en"
+    assert d({"LANG": "C.UTF-8", "LANGUAGE": "pt_BR"}) == "en"   # locale C ignora LANGUAGE
+    assert d({"LC_ALL": "pt_PT.UTF-8", "LANG": "en_US.UTF-8"}) == "pt"
+    assert d({}) == "en"
+    assert d({"LANG": "pt_BR.UTF-8", "EASYJOYCON_IDIOMA": "en"}) == "en"
 
 
 # --- configuração --------------------------------------------------------

@@ -11,6 +11,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from .i18n import _
+
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "scripts" / "instalar-sistema.sh"
 INPUT_CONF = Path("/etc/bluetooth/input.conf")
@@ -53,11 +55,11 @@ def missing(conf=INPUT_CONF, rules=RULES_FILE, joycond=None):
     """O que falta preparar, em palavras: [] = pronto."""
     out = []
     if not _bonded_only_off(conf):
-        out.append("o Bluetooth ainda não aceita Joy-Con")
+        out.append(_("o Bluetooth ainda não aceita Joy-Con"))
     if _rules_version(rules) < RULES_VERSION:
-        out.append("faltam as permissões dos controles")
+        out.append(_("faltam as permissões dos controles"))
     if _joycond_active() if joycond is None else joycond:
-        out.append("o joycond está ligado (ele esconde os botões)")
+        out.append(_("o joycond está ligado (ele esconde os botões)"))
     return out
 
 

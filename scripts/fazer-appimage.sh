@@ -28,7 +28,7 @@ fi
 
 echo "Copiando o app…"
 mkdir -p "$DEST/scripts" "$DEST/assets"
-cp -r app run.py README.md LICENSE "$DEST/"
+cp -r app run.py README.md README.pt-BR.md LICENSE "$DEST/"
 cp scripts/instalar-sistema.sh scripts/desfazer-sistema.sh "$DEST/scripts/"
 cp assets/easyjoycon.svg "$DEST/assets/"
 find "$DEST" -name __pycache__ -prune -exec rm -rf {} +
@@ -52,7 +52,8 @@ cat > "$APPDIR/easyjoycon.desktop" <<'DESKTOP'
 [Desktop Entry]
 Type=Application
 Name=EasyJoycon
-Comment=Joy-Cons no Dolphin com movimento
+Comment=Joy-Cons in Dolphin with motion controls
+Comment[pt]=Joy-Cons no Dolphin com movimento
 Exec=AppRun
 Icon=easyjoycon
 Terminal=false
