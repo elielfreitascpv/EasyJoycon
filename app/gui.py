@@ -66,6 +66,9 @@ PRO_BODY = (0.15, 0.15, 0.16)
 BUTTON = (0.12, 0.12, 0.13)
 PRESSED = (1.0, 1.0, 1.0)
 
+# Do "button" pra baixo: botões, caixinhas, réguas e menus com o visual do app
+# em qualquer tema (com tema claro, o do sistema deixava os botões brancos no
+# fundo escuro — visto num Ubuntu em 2026-10-13).
 CSS = b"""
 window, .ej-bg { background-color: #2b2b2e; color: #f2f2f2; }
 .ej-title { font-size: 20px; font-weight: bold; }
@@ -76,6 +79,29 @@ window, .ej-bg { background-color: #2b2b2e; color: #f2f2f2; }
 .ej-warn { background-color: #4a3d1a; border-radius: 10px; padding: 8px 12px; }
 .ej-bar button { padding: 6px 14px; }
 .ej-dim { color: #9a9aa0; }
+button { background-image: none; background-color: #3a3a3f; color: #f2f2f2;
+         border: 1px solid #4a4a50; border-radius: 8px; box-shadow: none;
+         text-shadow: none; -gtk-icon-shadow: none; outline-color: #00c2e3; }
+button:hover { background-color: #46464c; border-color: #5a5a60; }
+button:active, button:checked { background-color: #2f2f33; }
+button:disabled { background-color: #323236; color: #74747a; border-color: #3c3c41; }
+button label, button:disabled label { color: inherit; }
+checkbutton { color: #f2f2f2; }
+checkbutton check { background-image: none; background-color: #3a3a3f; color: #10181a;
+                    border: 1px solid #6a6a70; border-radius: 4px; box-shadow: none; }
+checkbutton check:checked { background-color: #00c2e3; border-color: #00c2e3; }
+scale trough { background-image: none; background-color: #4a4a50; border: none;
+               border-radius: 3px; min-height: 5px; }
+scale highlight { background-image: none; background-color: #00c2e3; border: none;
+                  border-radius: 3px; }
+scale slider { background-image: none; background-color: #f2f2f2; border: none;
+               border-radius: 9px; min-width: 18px; min-height: 18px; box-shadow: none; }
+scale value, scale label { color: #f2f2f2; }
+menu, .menu, .context-menu { background-color: #2b2b2e; color: #f2f2f2; }
+menuitem { color: #f2f2f2; }
+menuitem:hover { background-color: #3a3a3f; }
+tooltip, tooltip.background { background-color: #1d1d21; color: #f2f2f2; }
+tooltip label { color: #f2f2f2; }
 """
 
 
