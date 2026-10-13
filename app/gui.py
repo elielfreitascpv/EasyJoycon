@@ -31,7 +31,7 @@ except (ImportError, ValueError):
     AyatanaAppIndicator3 = None
 
 from . import config, dolphin, sistema  # noqa: E402
-from .i18n import _  # noqa: E402
+from .i18n import _, language  # noqa: E402
 from .motion import AIM_LIMIT  # noqa: E402
 from .players import MODE_NAMES  # noqa: E402
 
@@ -49,6 +49,8 @@ ICON_FILE = Path(__file__).resolve().parent.parent / "assets" / "easyjoycon.svg"
 # baixou o código usa o arquivo direto.
 DESKTOP_ICON = os.environ.get("EASYJOYCON_ICON") or str(ICON_FILE)
 NOTIFY_KINDS = {"conectou", "desconectou", "jogador", "aviso"}
+TUTORIAL = {"pt": "https://github.com/thel4stbolacha/EasyJoycon/blob/main/docs/como-usar.md",
+            "en": "https://github.com/thel4stbolacha/EasyJoycon/blob/main/docs/how-to-use.md"}
 BANNER_SECONDS = 4.0
 
 # Cores (tema escuro do Switch + Joy-Cons neon)
@@ -452,6 +454,10 @@ class PlayerCard(Gtk.DrawingArea):
             y += 18
 
 
+def _has_player(st):
+    return any(p["members"] for p in st["players"].values())
+
+
 class WaitingStrip(Gtk.DrawingArea):
     def __init__(self, app):
         super().__init__()
@@ -475,7 +481,13 @@ class WaitingStrip(Gtk.DrawingArea):
             else:
                 msg = _("Controle já pareado: aperte um botão nele.  Controle novo: "
                         "\"Procurar controles\" e segure o sync.")
-            _text(cr, msg, w / 2, h / 2 + 5, 13, TEXT_DIM)
+            if st and not st["searching"] and _has_player(st):
+                # a janela não falava disso em lugar nenhum (pedido de 2026-10-13)
+                _text(cr, _("Pra mirar: aponte pro meio da tela e aperte o analógico (no par, "
+                            "o do Joy-Con direito)"), w / 2, h / 2 - 6, 20, TEXT, bold=True)
+                _text(cr, msg, w / 2, h / 2 + 28, 13, TEXT_DIM)
+            else:
+                _text(cr, msg, w / 2, h / 2 + 5, 13, TEXT_DIM)
             return
         _text(cr, _("L + R juntos (um Joy-Con em cada mão) = Wii Remote + Nunchuk   ·   "
                     "SL + SR = deitado   ·   R + ZR (ou L + ZL) = em pé"),
@@ -523,6 +535,12 @@ class MainWindow(Gtk.ApplicationWindow):
             set_autostart(True)     # o AppImage pode ter mudado de pasta
         self.autostart.connect("toggled", lambda b: set_autostart(b.get_active()))
         top.pack_end(self.autostart, False, False, 8)
+        help_btn = Gtk.Button(label=_("Como usar"))
+        help_btn.set_tooltip_text(_("Abre o passo a passo no site do EasyJoycon: conectar, "
+                                    "virar jogador, mirar e o que cada botão faz"))
+        help_btn.connect("clicked", lambda *_a: Gtk.show_uri_on_window(
+            self, TUTORIAL[language()], Gdk.CURRENT_TIME))
+        top.pack_end(help_btn, False, False, 0)
         root.pack_start(top, False, False, 0)
 
         self.banner = Gtk.Label(xalign=0)
@@ -748,7 +766,7 @@ class MainWindow(Gtk.ApplicationWindow):
             if p != c.drawn:
                 c.drawn = p
                 c.queue_draw()
-        waiting = st["waiting"], st["searching"]
+        waiting = st["waiting"], st["searching"], _has_player(st)
         if waiting != self.strip.drawn or st["waiting"]:   # esperando: luz pulsando
             self.strip.drawn = waiting
             self.strip.queue_draw()

@@ -8,6 +8,10 @@ motion controls — no manual setup.
 
 ![EasyJoycon window](docs/window.png)
 
+📖 **New here? Read the [step-by-step guide](docs/how-to-use.md)** —
+connecting, becoming a player, aiming and what each button does (also
+opened by the **How to use** button in the app).
+
 ## What it does
 
 - **Connects the controllers over Bluetooth**, like the Switch's controller
@@ -82,7 +86,7 @@ language.
 **To aim**: hold the controller however is comfortable, point at the
 middle of the screen and **press the stick** to recenter. Like on the
 Switch, that grip becomes "pointing at the TV". Changed your grip? Press the
-stick again.
+stick again. More in the [guide](docs/how-to-use.md#5-aiming-press-the-stick-to-recenter).
 
 ### Buttons
 

@@ -33,6 +33,10 @@ def set_language(lang):
     _current["lang"] = lang
 
 
+def language():
+    return _current["lang"]
+
+
 def _(text, **values):
     if _current["lang"] == "en":
         text = EN.get(text, text)
@@ -87,6 +91,13 @@ EN = {
     "Configurar Dolphin": "Set up Dolphin",
     "Mapeia os Wii Remotes conforme os jogadores de agora (com o Dolphin fechado)":
         "Maps the Wii Remotes to the current players (with Dolphin closed)",
+    "Como usar": "How to use",
+    "Abre o passo a passo no site do EasyJoycon: conectar, virar jogador, mirar e o que cada "
+    "botão faz": "Opens the step-by-step guide on the EasyJoycon website: connecting, "
+                 "becoming a player, aiming and what each button does",
+    "Pra mirar: aponte pro meio da tela e aperte o analógico (no par, o do Joy-Con "
+    "direito)": "To aim: point at the middle of the screen and press the stick (with a pair, "
+                "the right Joy-Con's)",
     "Mostrar a janela": "Show window",
     "Sair": "Quit",
 

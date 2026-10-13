@@ -8,6 +8,10 @@ acelerômetro — sem configurar nada na mão.
 
 ![Janela do EasyJoycon](docs/janela.png)
 
+📖 **Primeira vez? Leia o [passo a passo](docs/como-usar.md)** — conectar,
+virar jogador, mirar e o que cada botão faz (é o que abre o botão **Como
+usar** do app).
+
 A janela fala português ou inglês, conforme o idioma do sistema.
 
 ## O que ele faz
@@ -83,6 +87,7 @@ controle só).
 **Pra mirar**: segure o controle do jeito mais confortável, aponte pro meio
 da tela e **aperte o analógico** pra centralizar. Como no Switch, essa
 pegada vira "apontando pra TV". Mudou a pegada? Aperte o analógico de novo.
+Mais no [passo a passo](docs/como-usar.md#5-mirar-aperte-o-analógico-pra-centralizar).
 
 ### Botões
 

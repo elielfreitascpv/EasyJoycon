@@ -1626,11 +1626,17 @@ def janela_desenha_todos_os_jeitos():
     class App:
         state = st
 
+    jogando = dict(st, waiting=[], searching=False)
+
+    class Jogando:          # ninguém esperando: a faixa mostra como mirar
+        state = jogando
+
     off = Gtk.OffscreenWindow()
     box = Gtk.Box(spacing=10)
     for n in range(1, 5):
         box.pack_start(gui.PlayerCard(n, App), True, True, 0)
     box.pack_start(gui.WaitingStrip(App), True, True, 0)
+    box.pack_start(gui.WaitingStrip(Jogando), True, True, 0)
     off.add(box)
     off.set_default_size(1200, 420)
     off.show_all()
@@ -1708,6 +1714,24 @@ def traducao_completa():
     finally:
         i18n.set_language("pt")
     assert i18n._("Jogador {n}", n=2) == "Jogador 2"
+
+
+@caso
+def como_usar_aponta_pras_paginas_do_tutorial():
+    """O botão "Como usar" abre docs/como-usar.md ou docs/how-to-use.md no
+    GitHub: os dois existem e um aponta pro outro."""
+    if not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
+        print("      (sem tela: pulei)")
+        return
+    from app import gui
+    raiz = Path(__file__).resolve().parent.parent
+    assert set(gui.TUTORIAL) == {"pt", "en"}
+    for lang, url in gui.TUTORIAL.items():
+        assert url.startswith("https://github.com/thel4stbolacha/EasyJoycon/blob/main/"), url
+        pagina = raiz / url.split("/blob/main/", 1)[1]
+        assert pagina.exists(), pagina
+        outra = "how-to-use.md" if lang == "pt" else "como-usar.md"
+        assert f"({outra})" in pagina.read_text(encoding="utf-8"), (pagina, outra)
 
 
 @caso
