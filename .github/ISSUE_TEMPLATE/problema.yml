@@ -1,0 +1,35 @@
+name: Algo não funcionou
+description: Controle que não conecta, movimento estranho, Dolphin que não recebe…
+labels: [problema]
+body:
+  - type: textarea
+    id: oque
+    attributes:
+      label: O que aconteceu?
+      description: O que você fez, o que esperava e o que aconteceu.
+    validations:
+      required: true
+  - type: input
+    id: sistema
+    attributes:
+      label: Distribuição Linux e versão
+      placeholder: "ex.: Linux Mint 22, Ubuntu 24.04, Fedora 40"
+    validations:
+      required: true
+  - type: input
+    id: controles
+    attributes:
+      label: Controles e adaptador Bluetooth
+      placeholder: "ex.: dois Joy-Cons, Bluetooth do notebook / adaptador TP-Link UB500"
+  - type: textarea
+    id: diagnostico
+    attributes:
+      label: Diagnóstico
+      description: "No terminal: `./EasyJoycon-*.AppImage diagnostico` — cole o resultado. Pode apagar os endereços (MAC) dos controles, se quiser."
+      render: text
+  - type: textarea
+    id: log
+    attributes:
+      label: Log (opcional)
+      description: "As últimas linhas de `~/.local/share/easyjoycon/logs/easyjoycon.log`."
+      render: text

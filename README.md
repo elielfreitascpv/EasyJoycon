@@ -65,7 +65,7 @@ controle só).
 ## Instalar e usar
 
 1. Baixe o `EasyJoycon-x.y.z-x86_64.AppImage` em
-   [Releases](../../releases).
+   [Releases](https://github.com/elielfreitascpv/EasyJoycon/releases/latest).
 2. Clique com o botão direito no arquivo → *Propriedades* → *Permissões* →
    marque **"Permitir executar como programa"** (ou, no terminal:
    `chmod +x EasyJoycon-*.AppImage`). Abra com dois cliques. Ele aparece
