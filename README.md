@@ -209,6 +209,12 @@ like "Nunchuk attached" and "sideways", plus game rumble, go through
 virtual controllers (`/dev/uinput`) that Dolphin reads alongside. Nothing
 leaves your computer.
 
+## About this project
+
+I built EasyJoycon with a lot of help from Claude (AI) and tested every part
+with real controllers. I work in tech but I'm not a developer: I made it for
+my own use and decided to share it in case it helps someone else.
+
 ## Credits
 
 - [dekuNukem/Nintendo_Switch_Reverse_Engineering](https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering):

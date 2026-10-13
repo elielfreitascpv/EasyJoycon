@@ -209,6 +209,12 @@ apps de giroscópio pra emulador), só em `127.0.0.1`. Os botões vêm do driver
 "deitado" e a vibração dos jogos passam por controles virtuais
 (`/dev/uinput`) que o Dolphin lê junto. Nada sai do seu computador.
 
+## Sobre o projeto
+
+Fiz o EasyJoycon com muita ajuda do Claude (IA) e testei cada parte com
+controles de verdade. Trabalho com tecnologia, mas não sou desenvolvedor:
+fiz pra usar e resolvi compartilhar caso ajude mais alguém.
+
 ## Créditos
 
 - [dekuNukem/Nintendo_Switch_Reverse_Engineering](https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering):
