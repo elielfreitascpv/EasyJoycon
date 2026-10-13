@@ -46,7 +46,9 @@ controle só).
   deve funcionar em qualquer distribuição recente (kernel 5.16 ou mais
   novo, que já traz o driver dos controles da Nintendo).
 - **Python 3.10+ e GTK 3** — já vêm instalados no Ubuntu 22.04+, Linux
-  Mint 21+, Fedora e Debian 12. Se faltar, o app avisa o que instalar.
+  Mint 21+, Fedora e Debian 12 com área de trabalho. Se faltar, o app avisa
+  o que instalar (no Ubuntu/Mint:
+  `sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0`).
 - **Dolphin** — pela loja de aplicativos do sistema (procure "Dolphin
   Emulator") ou `flatpak install flathub org.DolphinEmu.dolphin-emu`.
 

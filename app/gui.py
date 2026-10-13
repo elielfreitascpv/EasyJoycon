@@ -468,9 +468,9 @@ class MainWindow(Gtk.ApplicationWindow):
         super().__init__(application=app, title="EasyJoycon")
         self.app = app
         self.set_default_size(1100, 680)  # cabe em 1366×768
-        if ICON_FILE.exists():
+        try:
             self.set_icon_from_file(str(ICON_FILE))
-        else:
+        except GLib.Error:      # sem o leitor de SVG (librsvg) ou sem o arquivo
             self.set_icon_name("input-gaming")
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         root.set_border_width(14)
@@ -669,7 +669,7 @@ class MainWindow(Gtk.ApplicationWindow):
                          "a calibração e a reconexão pelo botão podem falhar. Feche e, se o "
                          "movimento ou o analógico ficarem estranhos, desligue e ligue o "
                          "controle.")
-        if st.get("uinput_error"):
+        if st.get("uinput_error") and not setup:     # o "Preparar o sistema" resolve
             warns.append("Sem o controle virtual (/dev/uinput): no Dolphin não funcionam a "
                          "vibração, o Nunchuk nem o modo deitado. Veja o que falta com "
                          "o diagnóstico (comando diagnostico).")

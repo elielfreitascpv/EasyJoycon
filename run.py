@@ -27,6 +27,7 @@ def _gui_available():
         import gi
         gi.require_version("Gtk", "3.0")
         from gi.repository import Gtk  # noqa: F401
+        gi.require_foreign("cairo")      # o desenho dos controles (python3-gi-cairo)
     except (ImportError, ValueError):
         return False
     return True
@@ -133,13 +134,15 @@ def cmd_diagnose():
 
     print("Permissões")
     groups = {grp.getgrgid(g).gr_name for g in os.getgroups()}
-    _ok("input" in groups, "usuário no grupo input", "usuário fora do grupo input")
+    if "input" not in groups:
+        print("  · usuário fora do grupo input (só as luzes de jogador precisam; "
+              "o \"Preparar o sistema\" resolve, e vale depois de sair e entrar)")
     _ok(sistema._rules_version() >= sistema.RULES_VERSION, "regras do udev instaladas",
         f"faltam as regras do udev (ou são antigas) — {PREPARE}")
     _ok(os.access("/dev/uinput", os.R_OK | os.W_OK),
         "controle virtual (/dev/uinput) liberado: vibração, Nunchuk e deitado no Dolphin",
-        "sem acesso ao /dev/uinput — sem vibração, Nunchuk e deitado no Dolphin "
-        f"({PREPARE})")
+        "sem acesso ao /dev/uinput — sem vibração, Nunchuk e deitado no Dolphin; "
+        + PREPARE)
     jc = subprocess.run(["systemctl", "is-active", "joycond"], capture_output=True, text=True,
                         check=False).stdout.strip()
     _ok(jc != "active", "joycond desligado (o EasyJoycon faz o papel dele)",
@@ -213,7 +216,8 @@ def main(argv):
     if cmd in ("janela", "--segundo-plano"):
         if _gui_available():
             return cmd_gui(hidden=cmd == "--segundo-plano")
-        print("Sem interface gráfica disponível (falta o python3-gi?) — abrindo no terminal.")
+        print("Sem interface gráfica disponível (falta o python3-gi ou o python3-gi-cairo?) "
+              "— abrindo no terminal.")
         return cmd_server()
     if cmd in ("--terminal", "terminal", "servidor"):
         return cmd_server()
