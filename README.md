@@ -6,7 +6,7 @@ Use **Nintendo Switch Joy-Cons as a Wii Remote + Nunchuk in
 [Dolphin](https://dolphin-emu.org)** on Linux, with gyro and accelerometer
 motion controls — no manual setup.
 
-![EasyJoycon window](docs/window.png)
+![Joy-Cons in EasyJoycon, pointing in the Wii Menu and playing Archery in Wii Sports Resort](docs/demo.gif)
 
 📖 **New here? Read the [step-by-step guide](docs/how-to-use.md)** —
 connecting, becoming a player, aiming and what each button does (also
@@ -82,6 +82,8 @@ language.
 5. Hold **L + R** to become player 1 (see the other ways above). The
    controller lights show the player number, like on the Switch.
 6. Click **Open Dolphin**. That's it: pick a game and play.
+
+![EasyJoycon window](docs/window.png)
 
 **To aim**: hold the controller however is comfortable, point at the
 middle of the screen and **press the stick** to recenter. Like on the
