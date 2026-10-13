@@ -1,0 +1,18 @@
+venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+
+# Dados locais: configuração, memória dos jogadores, log, backups do Dolphin
+data/*
+!data/.gitkeep
+
+# Criado pelo easyjoycon.sh com o caminho completo desta pasta
+EasyJoycon.desktop
+
+# Configurações locais do Claude Code (skills vão pro git)
+.claude/settings.local.json
+.claude/launch.json
+
+# AppImage montado (scripts/fazer-appimage.sh)
+dist/

@@ -1,0 +1,15 @@
+# Regras do ruff deste projeto (skill static-analysis)
+line-length = 100
+target-version = "py312"
+extend-exclude = ["venv"]
+
+[lint]
+select = ["E", "F", "W", "B", "UP", "RUF", "PLW", "S", "BLE"]
+ignore = [
+    "RUF001", "RUF002", "RUF003",  # texto em português com "×", "–", "●" etc.
+    "S603", "S607",  # subprocess com lista fixa (systemctl)
+    "S311",  # random só pro id do servidor DSU, não é segurança
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["S101", "E501"]

@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Hook de pre-commit rastreado no repo. Ativar uma vez por clone com:
+#   git config core.hooksPath .githooks
+# Bloqueia commit com lint ou teste quebrado, ou com arquivo que não devia ir
+# pro git. Pular em emergência: git commit --no-verify (evitar).
+
+cd "$(git rev-parse --show-toplevel)" || exit 1
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+fail=0
+
+# Dados locais (configuração, memória dos jogadores, log, backups) nunca entram
+if echo "$staged" | grep -qE '^data/[^.]|\.desktop$'; then
+  echo "==> arquivo que não devia ir pro git:"
+  echo "$staged" | grep -E '^data/[^.]|\.desktop$'
+  fail=1
+fi
+
+if [ ! -x venv/bin/python ]; then
+  echo "==> sem venv/ — rode ./easyjoycon.sh uma vez antes de commitar"
+  exit 1
+fi
+
+if echo "$staged" | grep -qE '\.py$|^ruff\.toml$'; then
+  echo "==> ruff"
+  venv/bin/ruff check app run.py tests || fail=1
+fi
+
+if echo "$staged" | grep -qE '\.sh$|^\.githooks/|^packaging/'; then
+  echo "==> bash -n"
+  bash -n easyjoycon.sh scripts/*.sh packaging/AppRun .githooks/pre-commit || fail=1
+fi
+
+if echo "$staged" | grep -qE '^(app|tests)/|^run\.py$|^requirements\.txt$'; then
+  echo "==> teste de regressão"
+  venv/bin/python tests/test_regressao.py > /tmp/easyjoycon-teste.$$ 2>&1 || { cat /tmp/easyjoycon-teste.$$; fail=1; }
+  tail -1 /tmp/easyjoycon-teste.$$
+  rm -f /tmp/easyjoycon-teste.$$
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo
+  echo "Commit bloqueado: arquivo proibido, lint ou teste falhou."
+  exit 1
+fi

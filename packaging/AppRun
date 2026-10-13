@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Abre o EasyJoycon de dentro do AppImage. Usa o Python 3 e o GTK que já vêm
+# no sistema (Ubuntu, Mint, Fedora, Debian…); as outras dependências vão
+# junto, em usr/share/easyjoycon/vendor.
+set -u
+HERE="$(dirname "$(readlink -f "$0")")"
+APP="$HERE/usr/share/easyjoycon"
+SELF="${APPIMAGE:-$0}"
+
+aviso() {   # mostra uma mensagem mesmo sem terminal (aberto pelo gerenciador de arquivos)
+  echo "EasyJoycon: $1" >&2
+  if command -v zenity >/dev/null; then
+    zenity --error --title=EasyJoycon --no-wrap --text="$1" 2>/dev/null
+  elif command -v kdialog >/dev/null; then
+    kdialog --title EasyJoycon --error "$1" 2>/dev/null
+  elif command -v notify-send >/dev/null; then
+    notify-send -i dialog-error EasyJoycon "$1"
+  fi
+}
+
+PY="$(command -v python3 || true)"
+if [ -z "$PY" ] || ! "$PY" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2>/dev/null; then
+  aviso "Precisa do Python 3.10 ou mais novo (vem no Ubuntu 22.04, Mint 21, Fedora 36 e mais novos)."
+  exit 1
+fi
+if [ $# -eq 0 ] && ! "$PY" -c 'import gi; gi.require_version("Gtk", "3.0"); from gi.repository import Gtk' 2>/dev/null; then
+  aviso "Falta o GTK pro Python. Instale e abra de novo:
+Ubuntu/Mint/Debian: sudo apt install python3-gi gir1.2-gtk-3.0
+Fedora: sudo dnf install python3-gobject gtk3"
+  exit 1
+fi
+
+export EASYJOYCON_DATA_DIR="${EASYJOYCON_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/easyjoycon}"
+export EASYJOYCON_LAUNCHER="$SELF"
+export EASYJOYCON_ICON=easyjoycon
+export PYTHONPATH="$APP/vendor"
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
+
+# Atalho no menu de aplicativos (refeito se o AppImage mudar de pasta)
+if [ -n "${APPIMAGE:-}" ]; then
+  apps="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+  icons="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/scalable/apps"
+  atalho="$apps/easyjoycon.desktop"
+  if ! grep -qF "Exec=\"$APPIMAGE\"" "$atalho" 2>/dev/null; then
+    mkdir -p "$apps" "$icons"
+    cp "$HERE/easyjoycon.svg" "$icons/easyjoycon.svg"
+    cat > "$atalho" <<DESKTOP
+[Desktop Entry]
+Type=Application
+Name=EasyJoycon
+Comment=Joy-Cons no Dolphin com movimento
+Exec="$APPIMAGE"
+Icon=easyjoycon
+Terminal=false
+Categories=Game;
+DESKTOP
+  fi
+fi
+
+umask 077
+exec "$PY" "$APP/run.py" "$@"
